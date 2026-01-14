@@ -12,6 +12,9 @@ except FileNotFoundError:
 st.title("生徒現状報告書ジェネレーター")
 
 
+st.markdown("---")
+
+
 courses = {"6月": "春期講習", "11月": "夏期講習", "2月": "冬期講習"}
 
 ui_name, ui_grade, ui_subject, ui_season = st.columns(4)
