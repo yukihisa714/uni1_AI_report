@@ -1,4 +1,5 @@
 import streamlit as st
+from st_copy_to_clipboard import st_copy_to_clipboard
 from openai import OpenAI
 
 
@@ -36,15 +37,25 @@ st.header("学習状況および指導計画")
 latest_course = courses[season]
 
 
-st.subheader("直近の講習の振り返り")
+ui_whether_attended_course = st.checkbox(f"直近の{latest_course}を受講した/してない", value=True)
 
-ui_units_learned_in_the_course = st.text_input(f"{latest_course}で重点的に学習した単元・課題", placeholder="例：一次関数")
+if ui_whether_attended_course:
+    st.subheader("直近の講習の振り返り")
+    ui_units_learned_in_the_course = st.text_input(f"{latest_course}で重点的に学習した単元・課題", placeholder="例：一次関数")
+else:
+    st.subheader("最近の通常授業の振り返り")
+    start_learning_season = {
+        "6月": "3月",
+        "11月": "7月",
+        "2月": "12月",
+    }[season]
+    ui_units_learned_in_the_course = st.text_input(f"{start_learning_season}からの通常授業で重点的に学習した単元・課題", placeholder="例：一次関数")
 
 ui_before_growth_in_the_course = st.text_input("その単元・課題のはじめの状況", placeholder="例：関数の基礎があいまい")
 
 ui_after_growth_in_the_course = st.text_input("その単元・課題の終わりの状況", placeholder="例：関数の基礎問題がスラスラ解けるようになった")
 
-ui_units_developing = st.text_input("改善されたが完全に定着はしていない単元・課題", placeholder="例：図形の証明")
+ui_units_developing = st.text_input("改善されたが完全に定着はしていない単元・課題（ある場合）", placeholder="例：図形の証明")
 
 
 st.subheader("克服課題")
@@ -57,7 +68,7 @@ with ui_overcome1_comprehension:
 with ui_overcome1_proficiency:
     overcome1_proficiency = st.text_input("克服単元1の定着度", placeholder="例：80%")
 with ui_overcome1_place:
-    overcome1_place = st.text_input("克服単元1の指導場所", placeholder="例：家庭学習")
+    overcome1_place = st.selectbox("今後どこで取り組むか", ["通常授業", "〇〇講習", "家庭学習"], placeholder="例：家庭学習")
 
 
 ui_overcome2, ui_overcome2_comprehension, ui_overcome2_proficiency, ui_overcome2_place = st.columns(4)
@@ -68,18 +79,18 @@ with ui_overcome2_comprehension:
 with ui_overcome2_proficiency:
     overcome2_proficiency = st.text_input("克服単元2の定着度", placeholder="例：75%")
 with ui_overcome2_place:
-    overcome2_place = st.text_input("克服単元2の指導場所", placeholder="例：通常授業")
+    overcome2_place = st.selectbox("今後どこで取り組むか", ["通常授業", "〇〇講習", "家庭学習"], placeholder="例：通常授業")
 
 
 st.subheader("学ぶチカラ")
 
 power_of_learning = {
     "正答率について": {
-        "数学": {"計算の正確さを70%⇒90%にする": ["満点トライアル（１問でも間違えたら始めから）"]},
-        "英語": {"単語テストを70%⇒100%覚えきる": ["70%⇒100%に基準を上げる"]},
-        "理科": {"用語を70%⇒100%覚えきる": ["70%⇒100%に基準を上げる"]},
-        "社会": {"用語を70%⇒100%覚えきる": ["70%⇒100%に基準を上げる"]},
-        "国語": {"漢字・語いを70%⇒100%覚えきる": ["70%⇒100%に基準を上げる"]},
+        "数学": {"計算の正確さを◆%⇒◆%にする": ["満点トライアル（１問でも間違えたら始めから）"]},
+        "英語": {"単語テストを◆%⇒◆%覚えきる": ["◆%⇒◆%に基準を上げる"]},
+        "理科": {"用語を◆%⇒◆%覚えきる": ["◆%⇒◆%に基準を上げる"]},
+        "社会": {"用語を◆%⇒◆%覚えきる": ["◆%⇒◆%に基準を上げる"]},
+        "国語": {"漢字・語いを◆%⇒◆%覚えきる": ["◆%⇒◆%に基準を上げる"]},
     }[subject],
     "集中力について": {
         # "授業中の集中力を30分⇒45分に伸ばす": "",
@@ -108,38 +119,34 @@ power_of_learning = {
 }
 
 st.markdown("**学ぶチカラA**")
+power_of_learning_category1 = power_of_learning_issue1 = power_of_learning_plan1 = None
 ui_power_of_learning_category1, ui_power_of_learning_issue1, ui_power_of_learning_plan1 = st.columns(3)
 with ui_power_of_learning_category1:
-    power_of_learning_category1 = st.selectbox("カテゴリー", list(power_of_learning.keys()), key="category1", index=0)
+    power_of_learning_category1 = st.selectbox("カテゴリー", list(power_of_learning.keys()), key="category1", index=None, placeholder="選択してください")
 with ui_power_of_learning_issue1:
-    power_of_learning_issue1 = st.selectbox("課題", list(power_of_learning[power_of_learning_category1].keys()), key="issue1")
+    if power_of_learning_category1:
+        power_of_learning_issue1 = st.selectbox("課題", list(power_of_learning[power_of_learning_category1].keys()), key="issue1", index=None, placeholder="選択してください")
 with ui_power_of_learning_plan1:
-    power_of_learning_plan1 = st.selectbox("指導案", power_of_learning[power_of_learning_category1][power_of_learning_issue1], key="plan1")
+    if power_of_learning_category1 and power_of_learning_issue1:
+        power_of_learning_plan1 = st.selectbox("指導案", power_of_learning[power_of_learning_category1][power_of_learning_issue1], key="plan1", index=None, placeholder="選択してください")
 
-st.markdown("**学ぶチカラB**")
+st.markdown("**学ぶチカラB（任意）**")
+power_of_learning_category2 = power_of_learning_issue2 = power_of_learning_plan2 = None
 ui_power_of_learning_category2, ui_power_of_learning_issue2, ui_power_of_learning_plan2 = st.columns(3)
 with ui_power_of_learning_category2:
-    power_of_learning_category2 = st.selectbox("カテゴリー", list(power_of_learning.keys()), key="category2", index=1)
+    power_of_learning_category2 = st.selectbox("カテゴリー", list(power_of_learning.keys()), key="category2", index=None, placeholder="選択してください（任意）")
 with ui_power_of_learning_issue2:
-    power_of_learning_issue2 = st.selectbox("課題", list(power_of_learning[power_of_learning_category2].keys()), key="issue2")
+    if power_of_learning_category2:
+        power_of_learning_issue2 = st.selectbox("課題", list(power_of_learning[power_of_learning_category2].keys()), key="issue2", index=None, placeholder="選択してください")
 with ui_power_of_learning_plan2:
-    power_of_learning_plan2 = st.selectbox("指導案", power_of_learning[power_of_learning_category2][power_of_learning_issue2], key="plan2")
-
-st.markdown("**学ぶチカラC**")
-ui_power_of_learning_category3, ui_power_of_learning_issue3, ui_power_of_learning_plan3 = st.columns(3)
-with ui_power_of_learning_category3:
-    power_of_learning_category3 = st.selectbox("カテゴリー", list(power_of_learning.keys()), key="category3", index=2)
-with ui_power_of_learning_issue3:
-    power_of_learning_issue3 = st.selectbox("課題", list(power_of_learning[power_of_learning_category3].keys()), key="issue3")
-with ui_power_of_learning_plan3:
-    power_of_learning_plan3 = st.selectbox("指導案", power_of_learning[power_of_learning_category3][power_of_learning_issue3], key="plan3")
+    if power_of_learning_category2 and power_of_learning_issue2:
+        power_of_learning_plan2 = st.selectbox("指導案", power_of_learning[power_of_learning_category2][power_of_learning_issue2], key="plan2", index=None, placeholder="選択してください")
 
 
 st.subheader("進度状況とスケジュール")
-
 ui_class_status, ui_class_progress = st.columns(2)
 with ui_class_status:
-    class_status = st.text_input("現在の授業状況", placeholder="例：学校の予習")
+    class_status = st.selectbox("現在のユニワンでの進度", ["学校の予習", "学校の復習", "学校の進度に沿って", "受験対策", "英検◆級対策", "◆◆対策"])
 with ui_class_progress:
     class_progress = st.selectbox("授業の進み具合", ["概ね順調", "やや遅れている"])
 
@@ -148,11 +155,16 @@ if (class_progress == "やや遅れている"):
 else:
     ui_reason_for_delay = "特になし"
 
-ui_schedule_end_date = st.text_input("カリキュラム終了予定時期", placeholder="例：12月末～1月上旬")
+st.text("カリキュラム終了予定時期")
+ui_schedule_end_date, ui_schedule_end_curriculum = st.columns(2)
+with ui_schedule_end_date:
+    schedule_end_date = st.text_input("いつまでに", placeholder="例：12月末～1月上旬")
+with ui_schedule_end_curriculum:
+    schedule_end_curriculum = st.selectbox("どこまで終わるか", [f"{grade}の内容", "英検◆級対策", "◆◆対策", "◆単元名◆"])
 
 ui_next_phase, ui_next_phase_teaching_material = st.columns(2)
 with ui_next_phase:
-    next_phase = st.text_input("今後の方針", placeholder="例：入試対策")
+    next_phase = st.text_input("今後の方針（任意）", placeholder="例：入試対策、過去問演習、学校の予習")
 with ui_next_phase_teaching_material:
     next_phase_teaching_material = st.text_input("使用予定の教材（ある場合）", placeholder="例：入試過去問")
 
@@ -162,11 +174,23 @@ def generate_situation_and_plan():
     
     # 季節のマッピングを明確化（AIへの指示用）
     season_mapping = {
-        "夏": "6月面談用（春期講習の振り返り）",
-        "冬": "11月面談用（夏期講習の振り返り）",
-        "春": "2月面談用（冬期講習の振り返り）"
+        "6月": "春期講習または3月からの通常授業の振り返り",
+        "11月": "夏期講習または7月からの通常授業の振り返り",
+        "2月": "冬期講習または12月からの通常授業の振り返り",
     }
     target_template = season_mapping.get(season, "汎用テンプレート")
+
+    if ui_whether_attended_course:
+        intro_phrase = f"●{latest_course}では"
+    else:
+        intro_phrase = f"●{start_learning_season}からの通常授業では"
+
+    pol_b_text = "なし"
+    if power_of_learning_category2 and power_of_learning_issue2 and power_of_learning_plan2:
+        pol_b_text = f"""
+        - 課題: {power_of_learning_issue2}
+        - 指導案: {power_of_learning_plan2}
+        """
 
     # システムプロンプト：役割とテンプレート定義
     system_prompt = f"""
@@ -174,11 +198,13 @@ def generate_situation_and_plan():
 以下の指示とテンプレートに従い、丁寧で論理的、かつ保護者が安心できるトーンで文章を生成してください。
 冒頭の挨拶（「保護者様」「お世話になっております」など）は一切書かないでください。
 末尾の結び（「よろしくお願いいたします」「敬具」など）も一切書かないでください。
+【学ぶチカラ】について、【現在の学習状況および克服課題】では課題のみを記述し、【今後の指導計画および目標】では指導案のみを記述してください。
 
 ## 全体ルール
 - 文体は「です・ます」調で統一する。
 - 記号（●や【】）の形式はテンプレートを厳守する。
 - LaTeX形式の数式は使わず、一般的なテキスト表記にする。
+- 情報が"None"や"なし"、あるいは空の場合、その部分は文章に含めない。
 
 ## テンプレート選択指示
 現在の設定時期は「{season}」です。したがって、「{target_template}」の構成を使用してください。
@@ -186,7 +212,7 @@ def generate_situation_and_plan():
 ---
 ### テンプレートA：6月面談用（時期：夏 / 振り返り：春期講習）
 【現在の学習状況および克服課題】
-●春期講習では【入力された単元】を学びました。はじめは～（Before）だったのが、～（After）までできるようになりました。ここで学んだことは、現在の学習につながっています。●【改善中の単元】は改善傾向ですが、まだ定着には至っていないため、時期をおいて復習する予定です。●克服単元としては、【克服単元1】（理解度、定着度）、【克服単元2】などが挙げられます。また、今後高めていく学習力として「A：【学ぶチカラ課題1】」「B：【学ぶチカラ課題2】」「C：【学ぶチカラ課題3】」が挙げられます。●現在、授業は【授業状況】で進めていて、【進捗】です。（遅れている場合は理由も記述）
+●春期講習では【入力された単元】を学びました。はじめは～（Before）だったのが、～（After）までできるようになりました。ここで学んだことは、現在の学習につながっています。【改善中の単元】は改善傾向ですが、まだ定着には至っていないため、時期をおいて復習する予定です。●克服単元としては、【克服単元1】（理解度、定着度）、【克服単元2】などが挙げられます。また、今後高めていく学習力として「A：【学ぶチカラ課題1】」「B：【学ぶチカラ課題2】」「C：【学ぶチカラ課題3】」が挙げられます。●現在、授業は【授業状況】で進めていて、【進捗】です。（遅れている場合は理由も記述）
 
 【今後の指導計画および目標】
 ●テスト後、通常授業では予習を進めていきます。【カリキュラム終了時期】に終わる予定です。●克服課題の【克服単元1】などは家庭学習や【克服場所】で反復していきます。●学習力については、「A：【学ぶチカラ指導案1】」「B：【学ぶチカラ指導案2】」「C：【学ぶチカラ指導案3】」に取り組んでいきましょう。●【今後の方針】として【使用教材】などに取り組んでいきます。
@@ -194,7 +220,7 @@ def generate_situation_and_plan():
 ---
 ### テンプレートB：11月面談用（時期：冬 / 振り返り：夏期講習）
 【現在の学習状況および克服課題】
-●夏期講習では【入力された単元】を学びました。はじめは～（Before）だったのが、～（After）までできるようになりました。これは～という成果につながりました。●【改善中の単元】は改善されましたが、入試に向けて復習が必要です。●克服単元としては、【克服単元1】（理解度、定着度）などが挙げられます。また、今後高めていく学ぶチカラとして「A：【学ぶチカラ課題1】」「B：【学ぶチカラ課題2】」「C：【学ぶチカラ課題3】」が挙げられます。●現在、【授業状況】で進めていて、【進捗】です。（遅れている場合は理由も記述）
+●夏期講習では【入力された単元】を学びました。はじめは～（Before）だったのが、～（After）までできるようになりました。これは～という成果につながりました。【改善中の単元】は改善されましたが、入試に向けて復習が必要です。●克服単元としては、【克服単元1】（理解度、定着度）などが挙げられます。また、今後高めていく学ぶチカラとして「A：【学ぶチカラ課題1】」「B：【学ぶチカラ課題2】」「C：【学ぶチカラ課題3】」が挙げられます。●現在、【授業状況】で進めていて、【進捗】です。（遅れている場合は理由も記述）
 
 【今後の指導計画および目標】
 ●後期中間テスト後、通常授業では予習を進めていきます。内容は【カリキュラム終了時期】に終わる予定です。その後は【今後の方針】に入ります。●克服課題の【克服単元1】などは【克服場所】で、冬期講習などで復習し、入試レベルまで引き上げます。●学ぶチカラについては、「A：【学ぶチカラ指導案1】」「B：【学ぶチカラ指導案2】」「C：【学ぶチカラ指導案3】」に取り組んでいきましょう。●【使用教材】などにも取り組んでいきます。
@@ -202,7 +228,7 @@ def generate_situation_and_plan():
 ---
 ### テンプレートC：2月面談用（時期：春 / 振り返り：冬期講習）
 【現在の学習状況および克服課題】
-●冬期講習では【入力された単元】の理解を深め、～（After）の状態になりました。（Beforeにも触れる）。●課題として【改善中の単元】などが残っています。●それ以外の克服課題として、【克服単元1】（理解度、定着度）などが挙げられます。また、今後高めていく学ぶチカラとして「A：【学ぶチカラ課題1】」「B：【学ぶチカラ課題2】」「C：【学ぶチカラ課題3】」が挙げられます。●現在、【授業状況】で進めていて、【進捗】です。（遅れている場合は理由も記述）
+●冬期講習では【入力された単元】の理解を深め、～（After）の状態になりました。（Beforeにも触れる）。課題として【改善中の単元】などが残っています。●それ以外の克服課題として、【克服単元1】（理解度、定着度）などが挙げられます。また、今後高めていく学ぶチカラとして「A：【学ぶチカラ課題1】」「B：【学ぶチカラ課題2】」「C：【学ぶチカラ課題3】」が挙げられます。●現在、【授業状況】で進めていて、【進捗】です。（遅れている場合は理由も記述）
 
 【今後の指導計画および目標】
 ●完全な受験体制/進級準備に入るため、学校内容を扱う時間は調整し、【今後の方針】を中心に行います。●【使用教材】などを使用予定です。●克服課題の【克服単元1】は【克服場所】で、【克服単元2】は春期講習で復習していきましょう。●学ぶチカラについては「A：【学ぶチカラ指導案1】」「B：【学ぶチカラ指導案2】」「C：【学ぶチカラ指導案3】」に取り組んでいきましょう。●次学年になる前に、自覚と生活習慣を確立することを目指します。
@@ -218,7 +244,8 @@ def generate_situation_and_plan():
 - 科目: {subject}
 - 時期設定: {season} ({latest_course}の振り返り)
 
-# 1. 講習の振り返り
+# 1. 振り返り
+- 書き出し: {intro_phrase}
 - 重点単元: {ui_units_learned_in_the_course}
 - Before: {ui_before_growth_in_the_course}
 - After: {ui_after_growth_in_the_course}
@@ -229,21 +256,16 @@ def generate_situation_and_plan():
 - 単元2: {overcome2} (理解: {overcome2_comprehension}, 定着: {overcome2_proficiency}) -> 指導場所: {overcome2_place}
 
 # 3. 学ぶチカラ（以下の文言をそのまま使用すること）
-- A:
+- A（必須）:
     課題: {power_of_learning_issue1}
-    対策: {power_of_learning_plan1}
-- B:
-    課題: {power_of_learning_issue2}
-    対策: {power_of_learning_plan2}
-- C:
-    課題: {power_of_learning_issue3}
-    対策: {power_of_learning_plan3}
+    指導案: {power_of_learning_plan1}
+- B（任意）: {pol_b_text}
 
 # 4. 進度・スケジュール
 - 授業状況: {class_status}
 - 進み具合: {class_progress}
 - 遅れの理由: {ui_reason_for_delay}(やや遅れている場合のみ)
-- 終了予定: {ui_schedule_end_date}
+- 終了予定: {schedule_end_date} ({schedule_end_curriculum})
 - 今後の方針: {next_phase}
 - 使用教材: {next_phase_teaching_material}
 """
@@ -251,8 +273,7 @@ def generate_situation_and_plan():
     return system_prompt, user_prompt
 
 
-# --- 実行部分のイメージ ---
-# --- 生成ボタンと処理 ---
+
 st.markdown("---")
 
 button_situation_and_plan = st.button("学習状況および指導計画を生成", type="primary")
@@ -265,7 +286,6 @@ if button_situation_and_plan:
         (ui_units_learned_in_the_course, f"{latest_course}で重点的に学習した単元"),
         (ui_before_growth_in_the_course, "はじめの状況"),
         (ui_after_growth_in_the_course, "終わりの状況"),
-        (ui_units_developing, "改善されたが完全に定着はしていない単元"),
         (overcome1, "克服単元1"),
         (overcome1_comprehension, "克服単元1の理解度"),
         (overcome1_proficiency, "克服単元1の定着度"),
@@ -274,9 +294,12 @@ if button_situation_and_plan:
         (overcome2_comprehension, "克服単元2の理解度"),
         (overcome2_proficiency, "克服単元2の定着度"),
         (overcome2_place, "克服単元2の指導場所"),
-        (class_status, "現在の授業状況"),
-        (ui_schedule_end_date, "カリキュラム終了予定時期"),
-        (next_phase, "今後の方針")
+        (power_of_learning_category1, "学ぶチカラAのカテゴリー"),
+        (power_of_learning_issue1, "学ぶチカラAの課題"),
+        (power_of_learning_plan1, "学ぶチカラAの指導案"),
+        (class_status, "現在のユニワンでの進度"),
+        (schedule_end_date, "カリキュラム終了予定時期"),
+        (schedule_end_curriculum, "カリキュラム終了予定内容"),
     ]
     
     # 未入力の項目を探す
@@ -308,7 +331,22 @@ if button_situation_and_plan:
                 # 成功メッセージと結果の表示
                 st.success("作成が完了しました！")
                 st.markdown("### 生成された報告書")
-                st.text_area("コピー用", generated_text, height=500)
+                st.markdown("""
+1. 以下の内容をコピーして生徒現状報告書に貼り付けてください。
+2. 「◆%」「◆◆対策」などは、自分で入力しましょう。
+3. AIで生成しているため、内容が不適切な場合があります。  
+    必ず内容を確認し、校正した状態で提出しましょう。
+""")
+                generated_text1 = generated_text.split("\n")
+
+                st.markdown("#### 【現在の学習状況および克服課題】")
+                st.text_area("", generated_text1[1], height=250, label_visibility="collapsed")
+                st_copy_to_clipboard(generated_text1[1], before_copy_label="コピーする", after_copy_label="コピー完了！")
+                st.markdown("#### 【今後の指導計画および目標】")
+                st.text_area("", generated_text1[4], height=170, label_visibility="collapsed")
+                st_copy_to_clipboard(generated_text1[4], before_copy_label="コピーする", after_copy_label="コピー完了！")
+
+                st.text_area("デバッグ用プロンプト確認", f"--- システムプロンプト ---\n{sys_msg}\n\n--- ユーザープロンプト ---\n{usr_msg}", height=2500)
                 
             except Exception as e:
                 st.error(f"エラーが発生しました: {e}")
@@ -319,13 +357,16 @@ st.markdown("---")
 
 st.header("生徒へのメッセージ")
 
-ui_message = st.text_area("生徒へのメッセージ・強み（箇条書き推奨）", height=150, placeholder="・集中力が高く、最後まで頑張る力がある\n・質問が積極的")
+st.text("書き方が分からない人は、生成したメッセージを参考に、自分の言葉で書きましょう")
+
+ui_message = st.text_area("生徒へのメッセージ・褒めポイント・強み（箇条書き推奨）", height=150, placeholder="・集中力が高く、最後まで頑張る力がある\n・質問が積極的")
 
 
 def generate_message():
     # システムプロンプト：役割とテンプレート定義
     system_message = """
-あなたは生徒のやる気を引き出すプロの塾講師です。以下の #手順 を忠実に守って、前向きで励ましの言葉を使いながら、生徒が自信を持てるような生徒現状報告書のメッセージを書いてください。
+あなたは生徒のやる気を引き出すプロの塾講師です。以下の #手順 を忠実に守って、前向きで励ましの言葉を使いながら、生徒が自信を持てるような生徒現状報告書の生徒へのメッセージを書いてください。
+メッセージを送る相手は一人の生徒ですが、生徒の名前は一切含めないでください。
 
 #手順
 ・出力する前に、何文字になったかをカウントしてください。
@@ -342,12 +383,11 @@ def generate_message():
 以下の情報を元に、生徒へのメッセージを作成してください。
 
 # 生徒情報
-- 生徒名: {name}
 - 学年: {grade}
 - 科目: {subject}
 - 時期設定: {season} ({latest_course}の振り返り)
 
-# 1. 生徒へのメッセージ・強み
+# 1. 生徒へのメッセージ・褒めポイント・強み
 - {ui_message}
 """
 
@@ -358,8 +398,7 @@ button_message = st.button("生徒へのメッセージを生成", type="primary
 
 if button_message:
     required_fields = [
-        (name, "生徒のイニシャル"),
-        (ui_message, "生徒へのメッセージ・強み"),
+        (ui_message, "生徒へのメッセージ・褒めポイント・強み"),
     ]
     missing_items = [label for value, label in required_fields if not value]
     if missing_items:
@@ -381,7 +420,8 @@ if button_message:
                 result = response.choices[0].message.content
                 st.success("作成が完了しました！")
                 st.markdown("### 生成されたメッセージ")
-                st.text_area("コピー用", result, height=300)
+                st.text_area("", result, height=400, label_visibility="collapsed")
+                st_copy_to_clipboard(result, before_copy_label="コピーする", after_copy_label="コピー完了！")
 
             except Exception as e:
                 st.error(f"エラー: {e}")
